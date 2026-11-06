@@ -36,7 +36,8 @@ use serde_json::json;
 
 use crate::error::{Error, ErrorKind, Result};
 #[cfg(feature = "native-hydra")]
-use crate::jwt::{b64url, now};
+use crate::jwt::b64url;
+use crate::jwt::now;
 
 #[cfg(feature = "native-hydra")]
 const ISS: &str = "gaa";
