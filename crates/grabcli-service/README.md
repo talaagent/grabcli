@@ -21,10 +21,15 @@ gives an embedder:
 - `login`: many phone logins at once (`Logins`), each on its own thread,
   bound to the person who started it, one at a time per account, with a
   per-account code-send budget (60 s apart, 3 an hour by default).
+  A connected account's `display_name` is grabcli's masked phone
+  (`+1••••••••00`): it shows the number's last two digits, so treat it as
+  personal data where you display or log it.
 - `text`: the answers as plain text, for a chat reply or a model.
 
 Nothing is printed or read from disk or the environment; diagnostics go to an
 optional `Log` hook, and phones and codes stay in `Secret`s that never print.
+A login's failure message has its phone redacted, and the `Debug` of
+`Step`, `LoggedIn` and `MemorySlot` never shows a session.
 
 ## Example
 

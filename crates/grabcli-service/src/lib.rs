@@ -117,12 +117,34 @@ impl fmt::Debug for Secret {
     }
 }
 
+/// Stands in for a secret in a `Debug` (`<redacted>`).
+pub(crate) struct Redacted;
+
+impl fmt::Debug for Redacted {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("<redacted>")
+    }
+}
+
 /// A [`SessionSlot`] in memory (tests, examples, a single-process tool).
-#[derive(Debug, Default)]
+/// Its `Debug` shows only the account id and whether a session and a cart
+/// are kept.
+#[derive(Default)]
 pub struct MemorySlot {
     id: String,
     session: Mutex<Option<Value>>,
     cart: Mutex<Option<Value>>,
+}
+
+impl fmt::Debug for MemorySlot {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let held = |m: &Mutex<Option<Value>>| util::lock(m).as_ref().map(|_| Redacted);
+        f.debug_struct("MemorySlot")
+            .field("id", &self.id)
+            .field("session", &held(&self.session))
+            .field("cart", &held(&self.cart))
+            .finish()
+    }
 }
 
 impl MemorySlot {

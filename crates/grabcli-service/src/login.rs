@@ -64,12 +64,13 @@ pub enum View {
     Approve,
     /// Connected.
     Done {
-        /// How the account is shown.
+        /// How the account is shown: for the real backend, grabcli's masked
+        /// phone (`+1••••••••00`: the last two digits shown).
         display_name: String,
     },
     /// It ended without a session.
     Failed {
-        /// Why (no secrets).
+        /// Why (no secrets: the login's phone is redacted from it).
         message: String,
     },
     /// Its person cancelled it.
@@ -178,6 +179,7 @@ impl Pending {
 }
 
 /// What a finished login hands back: the session to keep and the name.
+/// Its `Debug` never shows the session.
 pub struct LoggedIn {
     /// The account it connected.
     pub org: String,
@@ -185,10 +187,43 @@ pub struct LoggedIn {
     pub person: String,
     /// grabcli's `Session` as JSON (secret: keep it sealed).
     pub session: serde_json::Value,
-    /// How the account is shown.
+    /// How the account is shown: for the real backend, grabcli's masked
+    /// phone (`+1••••••••00`: the last two digits shown).
     pub display_name: String,
     /// When the SSO login lapses (unix seconds), if known.
     pub sso_expires_at: Option<i64>,
+}
+
+impl core::fmt::Debug for LoggedIn {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("LoggedIn")
+            .field("org", &self.org)
+            .field("person", &self.person)
+            .field("session", &crate::Redacted)
+            .field("display_name", &self.display_name)
+            .field("sso_expires_at", &self.sso_expires_at)
+            .finish()
+    }
+}
+
+/// `text` without `phone` in any of the forms an error may echo it: as
+/// given, its digits (with or without the `+`), and its digits after a
+/// one- to three-digit country code.
+fn scrub_phone(phone: &Secret, text: &str) -> String {
+    let given = phone.expose().trim();
+    let digits: String = given.chars().filter(char::is_ascii_digit).collect();
+    let mut forms = vec![given.to_owned(), digits.clone()];
+    for cc in 1..=3 {
+        if digits.len() >= cc + 7 {
+            forms.push(digits[cc..].to_owned());
+        }
+    }
+    // Longest first, so a shorter form doesn't split a longer one.
+    forms.sort_by_key(|f| core::cmp::Reverse(f.len()));
+    forms
+        .iter()
+        .filter(|f| !f.is_empty())
+        .fold(text.to_owned(), |t, f| Secret::new(f.as_str()).redact(&t))
 }
 
 /// Where a done login's session goes (the embedder keeps it for the org);
@@ -310,8 +345,10 @@ impl Logins {
                 "the phone number: in international form, + and the country code first".into(),
             ));
         }
-        if self
-            .table()
+        // One critical section: the check, the send and the insert, so two
+        // starts for one org can't both pass.
+        let mut table = self.table();
+        if table
             .values()
             .any(|p| p.org == org && !p.lock().view.finished())
         {
@@ -336,7 +373,8 @@ impl Logins {
             }),
             cv: Condvar::new(),
         });
-        self.table().insert(p.id.clone(), Arc::clone(&p));
+        table.insert(p.id.clone(), Arc::clone(&p));
+        drop(table);
         let (hub, p2) = (Arc::clone(self), Arc::clone(&p));
         std::thread::Builder::new()
             .name("grab-login".into())
@@ -356,7 +394,15 @@ impl Logins {
                     hub.log(&format!("org {}: the login driver panicked", p2.org));
                 }
             })
-            .map_err(|e| LoginError::Invalid(format!("a thread: {e}")))?;
+            .map_err(|e| {
+                self.finish(
+                    &p,
+                    View::Failed {
+                        message: "the login couldn't start".into(),
+                    },
+                );
+                LoginError::Invalid(format!("a thread: {e}"))
+            })?;
         Ok(p.snapshot())
     }
 
@@ -446,8 +492,8 @@ impl Logins {
     }
 
     fn drive(&self, p: &Pending, d: &mut dyn LoginDriver, phone: Secret, done: &OnDone) {
+        // The phone stays only to scrub it from a failure's message.
         let mut step = d.start(&phone);
-        drop(phone);
         let approve_until = self.now() + self.timing.approval_ms;
         loop {
             if self.stopped(p) {
@@ -483,6 +529,7 @@ impl Logins {
                     };
                 }
                 Step::Failed(message) => {
+                    let message = scrub_phone(&phone, &message);
                     self.log(&format!("org {}: the login failed: {message}", p.org));
                     return self.finish(p, View::Failed { message });
                 }

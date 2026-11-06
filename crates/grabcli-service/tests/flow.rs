@@ -8,8 +8,8 @@ use std::time::Duration;
 
 use grabcli_service::fake::{FAKE_CODE, Fake};
 use grabcli_service::{
-    CartOp, GrabBackend, GrabError, LoggedIn, LoginError, Logins, MemorySlot, OnDone, Secret,
-    SessionSlot, Timing, View, money, text,
+    CartOp, GrabBackend, GrabError, LoggedIn, LoginDriver, LoginError, Logins, MemorySlot, OnDone,
+    Secret, SessionSlot, Step, Timing, View, money, text,
 };
 
 fn rt() -> tokio::runtime::Runtime {
@@ -224,4 +224,144 @@ fn approval_step_ups_bad_phones_and_the_send_budget() {
     logins.cancel("p1", "b", &s.id).expect("cancel");
     let v = until(&logins, "p1", "b", &s.id, View::finished);
     assert_eq!(v, View::Cancelled);
+}
+
+const TOKEN: &str = "tok-0123456789abcdef";
+
+/// A session holding token-like values (as grabcli's does).
+fn tokened() -> serde_json::Value {
+    let mut s = Fake::session("Sample");
+    s["sso_token"] = serde_json::json!(TOKEN);
+    s["refresh_token"] = serde_json::json!(format!("{TOKEN}-refresh"));
+    s
+}
+
+fn no_token(debug: &str) {
+    assert!(!debug.contains(TOKEN), "a token in {debug}");
+    assert!(!debug.contains("sso_token"), "the session in {debug}");
+    assert!(debug.contains("<redacted>"), "{debug}");
+}
+
+#[test]
+fn sessions_never_debug() {
+    let step = Step::Done {
+        session: tokened(),
+        display_name: "+1••••••••00".into(),
+        sso_expires_at: Some(1),
+    };
+    no_token(&format!("{step:?}"));
+    no_token(&format!("{step:#?}"));
+
+    let slot = MemorySlot::new("acct-1", Some(tokened()));
+    rt().block_on(slot.save_cart(Some(&serde_json::json!({ "t": TOKEN }))))
+        .expect("save");
+    no_token(&format!("{slot:?}"));
+    no_token(&format!("{slot:#?}"));
+    assert!(format!("{:?}", MemorySlot::new("a", None)).contains("session: None"));
+
+    let l = LoggedIn {
+        org: "acct-1".into(),
+        person: "p1".into(),
+        session: tokened(),
+        display_name: "x".into(),
+        sso_expires_at: None,
+    };
+    no_token(&format!("{l:?}"));
+}
+
+/// A driver that fails at once with `message`, or connects with `tokened()`.
+struct Scripted(Option<String>);
+
+impl LoginDriver for Scripted {
+    fn start(&mut self, _: &Secret) -> Step {
+        match self.0.take() {
+            Some(m) => Step::Failed(m),
+            None => Step::Done {
+                session: tokened(),
+                display_name: "+1••••••••00".into(),
+                sso_expires_at: None,
+            },
+        }
+    }
+    fn submit_code(&mut self, _: &Secret) -> Step {
+        Step::Failed("no".into())
+    }
+    fn wait(&mut self, _: Duration) -> Step {
+        Step::Failed("no".into())
+    }
+    fn cancel(&mut self) {}
+}
+
+#[test]
+fn a_failure_never_shows_the_phone() {
+    let lines: Arc<Mutex<Vec<String>>> = Arc::default();
+    let l2 = Arc::clone(&lines);
+    let logins = Arc::new(
+        Logins::new(fast(), Arc::new(|| 1_000_000))
+            .with_log(Arc::new(move |s| l2.lock().unwrap().push(s.to_owned()))),
+    );
+    let (_, done) = sink();
+    let msg = "page evaluation failed: +63 9171234567 / +639171234567 / 639171234567 / 09171234567";
+    let s = logins
+        .start(
+            "p1",
+            "a",
+            Secret::new(" +639171234567 "),
+            Box::new(Scripted(Some(msg.into()))),
+            done,
+        )
+        .expect("start");
+    let View::Failed { message } = until(&logins, "p1", "a", &s.id, View::finished) else {
+        panic!("not failed");
+    };
+    for shown in [message.clone()]
+        .into_iter()
+        .chain(lines.lock().unwrap().iter().cloned())
+    {
+        assert!(!shown.contains("9171234567"), "the phone in {shown}");
+    }
+    assert!(message.starts_with("page evaluation failed: "), "{message}");
+}
+
+#[test]
+fn concurrent_starts_of_one_org_let_one_through() {
+    for _ in 0..20 {
+        let logins = Arc::new(Logins::new(
+            Timing {
+                sends_per_hour: 100,
+                ..fast()
+            },
+            Arc::new(|| 1_000_000),
+        ));
+        let n = 8;
+        let gate = Arc::new(std::sync::Barrier::new(n));
+        let handles: Vec<_> = (0..n)
+            .map(|i| {
+                let (logins, gate) = (Arc::clone(&logins), Arc::clone(&gate));
+                std::thread::spawn(move || {
+                    let (_, done) = sink();
+                    gate.wait();
+                    logins.start(
+                        &format!("p{i}"),
+                        "org",
+                        Secret::new("+10000000000"),
+                        Fake::default().login("", None).expect("driver"),
+                        done,
+                    )
+                })
+            })
+            .collect();
+        let results: Vec<_> = handles
+            .into_iter()
+            .map(|h| h.join().expect("join"))
+            .collect();
+        let ok = results.iter().filter(|r| r.is_ok()).count();
+        assert_eq!(ok, 1, "{results:?}");
+        assert!(
+            results
+                .iter()
+                .filter_map(|r| r.as_ref().err())
+                .all(|e| matches!(e, LoginError::State(_)))
+        );
+    }
 }

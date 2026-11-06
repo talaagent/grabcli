@@ -283,8 +283,8 @@ pub trait GrabClient: Send + Sync {
     async fn refresh(&self, liveness: bool) -> GrabResult<Health>;
 }
 
-/// Where a login is.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Where a login is. Its `Debug` never shows a done step's session.
+#[derive(Clone, PartialEq, Eq)]
 pub enum Step {
     /// Grab sent a code (`channel`: sms, whatsapp, ...).
     AwaitingCode {
@@ -297,7 +297,8 @@ pub enum Step {
     Done {
         /// grabcli's `Session` as JSON.
         session: Value,
-        /// How the account is shown.
+        /// How the account is shown: for the real backend, grabcli's
+        /// masked phone (`+1••••••••00`, the last two digits shown).
         display_name: String,
         /// When the SSO login lapses (unix seconds), if known.
         sso_expires_at: Option<i64>,
@@ -305,6 +306,29 @@ pub enum Step {
     /// It ended (a wrong code, a step-up the app can't do: reCAPTCHA,
     /// selfie, PIN), why.
     Failed(String),
+}
+
+impl core::fmt::Debug for Step {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::AwaitingCode { channel } => f
+                .debug_struct("AwaitingCode")
+                .field("channel", channel)
+                .finish(),
+            Self::AwaitingApproval => f.write_str("AwaitingApproval"),
+            Self::Done {
+                display_name,
+                sso_expires_at,
+                ..
+            } => f
+                .debug_struct("Done")
+                .field("session", &crate::Redacted)
+                .field("display_name", display_name)
+                .field("sso_expires_at", sso_expires_at)
+                .finish(),
+            Self::Failed(m) => f.debug_tuple("Failed").field(m).finish(),
+        }
+    }
 }
 
 /// One login in a fresh isolated browser context, driven from its own
