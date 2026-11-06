@@ -1,16 +1,30 @@
+# Releases with release-plz (release-plz.toml): a release PR on each push to
+# master, and crates.io publishing of any version crates.io doesn't have yet.
+#
+# Publishing uses crates.io trusted publishing (OIDC): the release job, in
+# the `release` environment, trades a GitHub OIDC token for a short-lived
+# crates.io token (rust-lang/crates-io-auth-action). There is no registry
+# token secret. Each crate's trusted publisher on crates.io is: owner
+# `talaagent`, repository `grabcli`, workflow `release-plz.yml`, environment
+# `release`. Trusted publishing only works for a crate that already exists,
+# so each crate's first publish is a manual `cargo publish`.
+#
+# The release PR needs the organization and repository to allow GitHub
+# Actions to create pull requests; until then set no RELEASE_PR variable
+# and the job is skipped. Once allowed: `gh variable set RELEASE_PR --body
+# true`.
+
 name: Release-plz
 
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
-  # Publishes unpublished versions (release-plz orders the workspace crates by
-  # dependency: grabcli-core, grabfood, grabmart, grabcli). The crates.io token
-  # is a short-lived one minted via trusted publishing (OIDC); there is no
-  # CARGO_REGISTRY_TOKEN repo secret.
   release-plz-release:
     name: Release-plz release
     runs-on: ubuntu-latest
@@ -20,6 +34,10 @@ jobs:
       contents: write
       pull-requests: read
       id-token: write
+    # One publish at a time; never cancel one halfway through.
+    concurrency:
+      group: release-plz-release-${{ github.ref }}
+      cancel-in-progress: false
     steps:
       - &checkout
         name: Checkout repository
@@ -30,22 +48,86 @@ jobs:
       - &install-rust
         name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-      - name: Authenticate with crates.io
-        id: crates-io-auth
+      # Which publishable crates have a version crates.io doesn't have yet?
+      # Only then ask for a token, so an ordinary push stays green. A crate
+      # not on crates.io at all is held back with a warning (trusted
+      # publishing can't create a crate; its first publish is manual), and
+      # so is every workspace crate that depends on it, since it couldn't
+      # be published either. Held-back crates get `publish = false` in a
+      # copy of release-plz.toml that the release step uses.
+      - name: Versions not on crates.io yet
+        id: pending
+        run: |
+          ua="User-Agent: ${GITHUB_REPOSITORY} release workflow"
+          api=https://crates.io/api/v1/crates
+          meta=$(cargo metadata --no-deps --format-version 1)
+          held=""
+          while read -r name; do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' -H "$ua" "$api/$name")" = 404 ]; then
+              echo "::warning::$name is not on crates.io yet: publish it once by hand (cargo publish -p $name), then add its trusted publisher"
+              held="$held $name"
+            fi
+          done < <(jq -r '.packages[] | select(.publish != []) | .name' <<<"$meta")
+          # Hold back dependents of held crates, until nothing changes.
+          while :; do
+            more=$(jq -r --arg held "$held" '
+              ($held | split(" ") | map(select(. != ""))) as $h
+              | .packages[]
+              | select(.publish != [])
+              | select(.name as $n | $h | index($n) | not)
+              | select(any(.dependencies[]; .path != null and .kind != "dev" and (.name as $d | $h | index($d))))
+              | .name' <<<"$meta")
+            [ -z "$more" ] && break
+            for name in $more; do
+              echo "::warning::$name depends on a crate not on crates.io yet; not publishing it this run"
+              held="$held $name"
+            done
+          done
+          pending=""
+          while read -r name version; do
+            case " $held " in *" $name "*) continue ;; esac
+            code=$(curl -s -o /dev/null -w '%{http_code}' -H "$ua" "$api/$name/$version")
+            echo "$name $version: crates.io $code"
+            if [ "$code" = 404 ]; then pending="$pending $name@$version"; fi
+          done < <(jq -r '.packages[] | select(.publish != []) | "\(.name) \(.version)"' <<<"$meta")
+          config="$RUNNER_TEMP/release-plz.toml"
+          cp release-plz.toml "$config"
+          for name in $held; do
+            printf '\n[[package]]\nname = "%s"\npublish = false\n' "$name" >> "$config"
+          done
+          echo "config=$config" >> "$GITHUB_OUTPUT"
+          echo "pending=${pending# }" >> "$GITHUB_OUTPUT"
+          if [ -z "$pending" ]; then
+            echo "::notice::Nothing to publish."
+          fi
+      # Fails until the crate's trusted publisher is set up on crates.io;
+      # then warn and skip publishing rather than fail the run.
+      - name: crates.io token (trusted publishing)
+        if: ${{ steps.pending.outputs.pending != '' }}
+        id: auth
+        continue-on-error: true
         uses: rust-lang/crates-io-auth-action@v1
+      - name: No crates.io token
+        if: ${{ steps.pending.outputs.pending != '' && steps.auth.outcome != 'success' }}
+        run: |
+          echo "::warning::No crates.io token from trusted publishing (is a trusted publisher set up for owner talaagent, repo grabcli, workflow release-plz.yml, environment release?). Not publishing: ${{ steps.pending.outputs.pending }}"
+      # Publishes in dependency order the versions crates.io doesn't have
+      # yet (after a release PR is merged) and tags them.
       - name: Run release-plz
+        if: ${{ steps.pending.outputs.pending != '' && steps.auth.outcome == 'success' }}
         uses: release-plz/action@v0.5
         with:
           command: release
+          config: ${{ steps.pending.outputs.config }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
   # Opens/updates the release PR. PRs created with GITHUB_TOKEN don't trigger CI.
   release-plz-pr:
     name: Release-plz PR
     runs-on: ubuntu-latest
-    if: ${{ github.repository_owner == 'talaagent' }}
+    if: ${{ github.repository_owner == 'talaagent' && vars.RELEASE_PR == 'true' }}
     permissions:
       contents: write
       pull-requests: write
