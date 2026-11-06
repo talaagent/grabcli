@@ -16,9 +16,9 @@ name = "grab"
 path = "src/main.rs"
 
 [dependencies]
-grabcli-core.workspace = true
-grabfood.workspace = true
-grabmart.workspace = true
+grabcli-core = { workspace = true, features = ["native-hydra"] }
+grabfood = { workspace = true, features = ["native-hydra"] }
+grabmart = { workspace = true, features = ["native-hydra"] }
 bpaf.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

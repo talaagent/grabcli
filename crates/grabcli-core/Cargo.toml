@@ -18,7 +18,7 @@ futures-util.workspace = true
 getrandom.workspace = true
 image.workspace = true
 reqwest.workspace = true
-rsa.workspace = true
+rsa = { workspace = true, optional = true }
 rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -28,6 +28,14 @@ tokio.workspace = true
 tokio-tungstenite.workspace = true
 toml.workspace = true
 urlencoding.workspace = true
+
+[features]
+default = []
+# Native hydra minting (`hydra::mint_native`, `hydra_mode = "native"`): signs
+# the hydra JWT locally with an RS256 key, which pulls in rsa and its PKCS
+# stack. Without it hydra is minted over CDP only. The `grab` binary turns
+# it on.
+native-hydra = ["dep:rsa"]
 
 [dev-dependencies]
 tempfile.workspace = true

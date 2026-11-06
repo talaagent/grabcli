@@ -61,6 +61,12 @@ will start returning `invalid hydra jwt`; re-extract the key / bump the version,
 or switch to CDP mode. Server-side anomaly checks on the fingerprint fields are
 possible in principle but weren't observed.
 
+Native minting lives behind the `native-hydra` cargo feature of
+`grabcli-core` (forwarded by `grabfood` and `grabmart`), since the RS256
+signer pulls in `rsa` and its PKCS stack. It is off by default for the
+library crates and on in the `grab` binary. Built without it, `auto` always
+uses CDP and `native` fails with a hint to switch.
+
 ### CDP (`hydra_mode = "cdp"`, or `auto` with no key)
 
 grabcli drives a logged-in browser over the Chrome DevTools Protocol: it opens a
