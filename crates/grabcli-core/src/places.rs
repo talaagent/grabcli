@@ -22,7 +22,7 @@ const SAME_PLACE_M: f64 = 20.0;
 
 /// The closest place within this distance is reported as "near" the saved
 /// delivery address (e.g. the same building picked as a different POI).
-const NEAR_PLACE_M: f64 = 150.0;
+pub const NEAR_PLACE_M: f64 = 150.0;
 
 /// How a saved place relates to the saved delivery address.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
