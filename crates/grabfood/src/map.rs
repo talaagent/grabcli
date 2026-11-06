@@ -25,7 +25,7 @@ const MAX_TILES_PER_AXIS: i64 = 4;
 const USER_AGENT: &str = concat!(
     "grabcli/",
     env!("CARGO_PKG_VERSION"),
-    " (+https://github.com/macalinao/grabcli)"
+    " (+https://github.com/talaagent/grabcli)"
 );
 const ATTRIBUTION: &str = "(C) OpenStreetMap contributors";
 

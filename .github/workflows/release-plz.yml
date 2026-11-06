@@ -10,7 +10,7 @@ jobs:
   release-plz-release:
     name: Release-plz release
     runs-on: ubuntu-latest
-    if: ${{ github.repository_owner == 'macalinao' }}
+    if: ${{ github.repository_owner == 'talaagent' }}
     permissions:
       contents: write
       pull-requests: read
@@ -36,7 +36,7 @@ jobs:
   release-plz-pr:
     name: Release-plz PR
     runs-on: ubuntu-latest
-    if: ${{ github.repository_owner == 'macalinao' }}
+    if: ${{ github.repository_owner == 'talaagent' }}
     permissions:
       contents: write
       pull-requests: write
