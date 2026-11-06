@@ -48,3 +48,7 @@ jobs:
         env:
           RUSTDOCFLAGS: -Dwarnings
         run: nix develop --command cargo doc --workspace --no-deps --locked
+
+      # Builds each crate alone from its packaged tarball, default features.
+      - name: cargo publish --dry-run
+        run: nix develop --command cargo publish --workspace --dry-run --locked
