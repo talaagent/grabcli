@@ -6,11 +6,11 @@
 //! daemon can keep them anywhere.
 //!
 //! - Browse: [`browse::search`], [`browse::nearby`], [`browse::recommended`],
-//!   [`browse::cuisines`], [`browse::category`], [`menu`].
+//!   [`browse::cuisines`], [`browse::category`], [`menu()`].
 //! - Cart: [`cart_add`], [`cart_remove`] (plus [`Cart`]'s own fields).
-//! - Checkout: [`quote`], [`vouchers`], [`best_voucher`], [`prepare_order`],
+//! - Checkout: [`quote()`], [`vouchers`], [`best_voucher`], [`prepare_order`],
 //!   [`submit_order`], [`place_order`].
-//! - After: [`orders`], [`track`], [`history`].
+//! - After: [`orders`], [`track`], [`history()`].
 //!
 //! Build a context with [`context`], which registers the GrabFood URL
 //! allowlist (the order endpoint only when `allow_ordering` is set) and
@@ -163,7 +163,7 @@ pub struct Added {
 
 /// Add an item to `cart`, validating the ids against the merchant's menu.
 /// `mods` are `GROUP_ID:OPTION_ID` choices. A cached menu (≤ menu TTL) is
-/// fine here: the cart only stores ids, and [`quote`] re-validates against a
+/// fine here: the cart only stores ids, and [`quote()`] re-validates against a
 /// live menu before any price is shown.
 pub async fn cart_add(
     ctx: &mut Context,
