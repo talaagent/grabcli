@@ -39,4 +39,16 @@ jobs:
         run: nix develop --command cargo clippy --workspace --all-targets -- -D warnings
 
       - name: cargo test
-        run: nix develop --command cargo test --workspace
+        run: nix develop --command cargo test --workspace --locked
+
+      - name: cargo fmt
+        run: nix develop --command cargo fmt --all --check
+
+      - name: cargo doc
+        env:
+          RUSTDOCFLAGS: -Dwarnings
+        run: nix develop --command cargo doc --workspace --no-deps --locked
+
+      # Builds each crate alone from its packaged tarball, default features.
+      - name: cargo publish --dry-run
+        run: nix develop --command cargo publish --workspace --dry-run --locked
