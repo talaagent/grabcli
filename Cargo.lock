@@ -508,7 +508,7 @@ checksum = "37bfe73dc8ec21f54d181e5a60554327ec3f1c600c455a75ccbfc65d2106a6c4"
 
 [[package]]
 name = "grabcli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bpaf",
  "grabcli-core",
@@ -520,7 +520,7 @@ dependencies = [
 
 [[package]]
 name = "grabcli-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -543,7 +543,7 @@ dependencies = [
 
 [[package]]
 name = "grabfood"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ab_glyph",
  "bpaf",
@@ -562,7 +562,7 @@ dependencies = [
 
 [[package]]
 name = "grabmart"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bpaf",
  "grabcli-core",

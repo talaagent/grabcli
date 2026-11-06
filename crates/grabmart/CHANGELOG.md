@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/talaagent/grabcli/compare/grabmart-v0.1.0...grabmart-v0.1.1) - 2026-11-06
+
+### Other
+
+- Run release-plz under talaagent and update repo links ([#3](https://github.com/talaagent/grabcli/pull/3))
+
 ## [0.1.0](https://github.com/talaagent/grabcli/releases/tag/grabmart-v0.1.0) - 2026-10-30
 
 ### Other
