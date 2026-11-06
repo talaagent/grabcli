@@ -57,9 +57,9 @@ Turn ordering on yourself, deliberately, by editing your config.
 With Nix:
 
 ```
-nix run github:macalinao/grabcli -- food search pizza
+nix run github:talaagent/grabcli -- food search pizza
 # or install into your profile
-nix profile install github:macalinao/grabcli
+nix profile install github:talaagent/grabcli
 ```
 
 With cargo:

@@ -1,7 +1,7 @@
 # Security
 
 Please report vulnerabilities privately through GitHub's
-[private vulnerability reporting](https://github.com/macalinao/grabcli/security/advisories/new),
+[private vulnerability reporting](https://github.com/talaagent/grabcli/security/advisories/new),
 not in a public issue.
 
 Never paste cookies, tokens, `session.json` contents, card details, addresses or
