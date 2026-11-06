@@ -4,7 +4,7 @@
 [package]
 name = "grabfood"
 description = "GrabFood typed API for grabcli"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/talaagent/grabcli"
@@ -15,7 +15,7 @@ categories = ["command-line-utilities"]
 authors = ["Ian Macalinao <me@ianm.com>"]
 
 [dependencies]
-grabcli-core = { path = "../grabcli-core", version = "0.1.0" }
+grabcli-core = { path = "../grabcli-core", version = "0.2.0" }
 bpaf = { version = "0.9", features = ["derive"], optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
