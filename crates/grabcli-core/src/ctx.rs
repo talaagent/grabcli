@@ -256,7 +256,8 @@ impl Context {
     }
 
     fn resolve_hydra_mode(&self) -> ResolvedHydra {
-        let key_present = self.hydra_key_pem().is_some();
+        // Without native minting compiled in, `auto` always goes to CDP.
+        let key_present = cfg!(feature = "native-hydra") && self.hydra_key_pem().is_some();
         match self.config.hydra_mode.unwrap_or_default() {
             HydraMode::Native => ResolvedHydra::Native,
             HydraMode::Cdp => ResolvedHydra::Cdp,

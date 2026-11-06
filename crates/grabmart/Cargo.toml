@@ -21,6 +21,11 @@ sha2.workspace = true
 tokio.workspace = true
 urlencoding.workspace = true
 
+[features]
+default = []
+# Native hydra minting; see grabcli-core's `native-hydra`.
+native-hydra = ["grabcli-core/native-hydra", "grabfood/native-hydra"]
+
 [dev-dependencies]
 tempfile.workspace = true
 

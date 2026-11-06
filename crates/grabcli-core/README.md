@@ -16,6 +16,7 @@ library. Its API is not stable.
 - `cache`: the SQLite response cache, searchable catalog and image store, for
   read-only browse data only.
 - `hydra`, `jwt`: the hydra device JWT ([docs/hydra.md](../../docs/hydra.md)).
+  Native RS256 minting needs the non-default `native-hydra` feature (rsa).
 - `http`: the HTTP client; every request is checked against a URL allowlist.
 - `ctx`: the per-command `Context` that owns config, session and client, and
   re-mints hydra on rejection.

@@ -19,23 +19,35 @@
 //! The constants below (issuer, audience, version, TTL) describe the token
 //! *shape* Grab expects. They are protocol facts, not secrets.
 
+#[cfg(feature = "native-hydra")]
 use rsa::RsaPrivateKey;
+#[cfg(feature = "native-hydra")]
 use rsa::pkcs1::DecodeRsaPrivateKey;
+#[cfg(feature = "native-hydra")]
 use rsa::pkcs1v15::SigningKey;
+#[cfg(feature = "native-hydra")]
 use rsa::pkcs8::DecodePrivateKey;
+#[cfg(feature = "native-hydra")]
 use rsa::sha2::Sha256;
+#[cfg(feature = "native-hydra")]
 use rsa::signature::{SignatureEncoding, Signer};
+#[cfg(feature = "native-hydra")]
 use serde_json::json;
 
 use crate::error::{Error, ErrorKind, Result};
+#[cfg(feature = "native-hydra")]
 use crate::jwt::{b64url, now};
 
+#[cfg(feature = "native-hydra")]
 const ISS: &str = "gaa";
+#[cfg(feature = "native-hydra")]
 const AUD: &str = "gfw";
+#[cfg(feature = "native-hydra")]
 const NAME: &str = "grabtaxi";
 /// Hydra web app version claim (`ver`). Bump if Grab rotates it.
 pub const DEFAULT_VER: &str = "1.19.0.24";
 /// Token lifetime Grab issues (seconds).
+#[cfg(feature = "native-hydra")]
 const TTL_SECS: i64 = 600;
 
 /// Opaque browser-fingerprint claims. Any stable values are accepted because
@@ -112,6 +124,7 @@ fn uuid_v4() -> String {
     )
 }
 
+#[cfg(feature = "native-hydra")]
 fn load_key(pem: &str) -> Result<RsaPrivateKey> {
     RsaPrivateKey::from_pkcs1_pem(pem)
         .or_else(|_| RsaPrivateKey::from_pkcs8_pem(pem))
@@ -125,6 +138,7 @@ fn load_key(pem: &str) -> Result<RsaPrivateKey> {
 
 /// Mint a hydra JWT natively by signing claims with the given RS256 key (PEM).
 /// Returns `(token, exp)`.
+#[cfg(feature = "native-hydra")]
 pub fn mint_native(key_pem: &str, fields: &DeviceFields, ver: &str) -> Result<(String, i64)> {
     let key = load_key(key_pem)?;
     let signing = SigningKey::<Sha256>::new(key);
@@ -156,7 +170,18 @@ pub fn mint_native(key_pem: &str, fields: &DeviceFields, ver: &str) -> Result<(S
     Ok((token, exp))
 }
 
-#[cfg(test)]
+/// Native minting is compiled out: grabcli-core was built without the
+/// `native-hydra` feature (no rsa). Always fails; mint over CDP instead.
+#[cfg(not(feature = "native-hydra"))]
+pub fn mint_native(_key_pem: &str, _fields: &DeviceFields, _ver: &str) -> Result<(String, i64)> {
+    Err(Error::new(
+        ErrorKind::HydraExpired,
+        "native hydra minting is not built in (grabcli-core without the \
+         `native-hydra` feature); set hydra_mode = \"cdp\"",
+    ))
+}
+
+#[cfg(all(test, feature = "native-hydra"))]
 mod tests {
     use super::*;
     use rsa::pkcs1::EncodeRsaPrivateKey;
