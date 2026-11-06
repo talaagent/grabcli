@@ -52,6 +52,10 @@
               "grabcli"
             ];
             cargoTestFlags = [ "--workspace" ];
+            # reqwest 0.13's rustls-platform-verifier loads the system roots
+            # when a client is built (the ctx tests build one); the sandbox
+            # has none, so give the tests cacert (it sets SSL_CERT_FILE).
+            nativeCheckInputs = [ pkgs.cacert ];
             meta.mainProgram = "grab";
             meta.license = pkgs.lib.licenses.asl20;
           };
