@@ -452,6 +452,18 @@ added 1x Red Bull Energy Drink 4 x 250ml (PHITE20260805063620080508) at ₱339.0
 $ grab mart quote            # subtotal, delivery, fees, discounts, total
 ```
 
+## Embedding in a service
+
+[`grabcli-service`](crates/grabcli-service) wraps the library crates for a
+server or bot that keeps many accounts in its own storage: a `GrabClient` per
+account over a `SessionSlot` you implement (sessions are opaque JSON; the
+client's silent refreshes save through it), plain serde-able types for
+merchants, menus, carts, quotes and tracking, a multi-session phone-login
+state machine (`Logins`) with a per-account send budget, text rendering, and
+a no-network fake backend for tests. Ordering keeps the same gates as the
+CLI (`allow_ordering`, a matching fresh quote id, never retried). See
+[`examples/fake_order.rs`](crates/grabcli-service/examples/fake_order.rs).
+
 ## For assistants
 
 See [SKILL.md](SKILL.md) for the exact workflow an assistant should follow —
@@ -465,6 +477,7 @@ crates/grabcli-core   shared: config, session + SessionStore, auth/hydra, HTTP a
 crates/grabfood       GrabFood typed API (browse, menu, cart, quote, vouchers, order, track, history)
 crates/grabmart       GrabMart API client (reCAPTCHA via CDP), models, cart, quote
 crates/grabcli-sqlite SQLite cache backend (responses, catalog, images)
+crates/grabcli-service service-shaped client: many accounts, plain types, phone logins, a fake backend
 crates/grabcli        the `grab` binary: commands, printing, files (session.json, carts) and the SQLite cache
 docs/hydra.md         the hydra device JWT: what it is and how we mint it
 docs/checkout.md      the order-submission request, from reading the web app

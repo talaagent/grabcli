@@ -619,6 +619,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "grabcli-service"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "getrandom 0.3.4",
+ "grabcli-core",
+ "grabfood",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "grabcli-sqlite"
 version = "0.1.0"
 dependencies = [
