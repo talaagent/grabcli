@@ -10,6 +10,7 @@ license = "Apache-2.0"
 repository = "https://github.com/talaagent/grabcli"
 homepage = "https://github.com/talaagent/grabcli"
 readme = "README.md"
+documentation = "https://docs.rs/grabfood"
 keywords = ["grab", "grabfood", "cli", "food-delivery", "philippines"]
 categories = ["command-line-utilities"]
 authors = ["Ian Macalinao <me@ianm.com>"]
@@ -36,3 +37,6 @@ tempfile = "3"
 
 [lints.clippy]
 unwrap_used = "deny"
+
+[package.metadata.docs.rs]
+all-features = true

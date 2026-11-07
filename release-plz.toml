@@ -3,3 +3,4 @@ changelog_update = true
 git_tag_enable = true
 git_release_enable = true
 publish = true
+release_always = false

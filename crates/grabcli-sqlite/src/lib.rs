@@ -13,6 +13,22 @@
 //! treats as a miss. Housekeeping (`stats`, `clear`, `prune`) is only on
 //! this type, for `grab cache`. Schema migrations live in `db.rs`: append to
 //! `MIGRATIONS`, never edit a shipped one.
+//!
+//! # Example: configure a cache
+//!
+//! ```no_run
+//! use grabcli_core::cache::CacheConfig;
+//! use grabcli_sqlite::SqliteCache;
+//!
+//! let cache = SqliteCache::new("/path/to/private/cache", CacheConfig::default());
+//! let stats = cache.stats()?;
+//! println!("cached responses: {}", stats.entries);
+//! # Ok::<(), grabcli_core::Error>(())
+//! ```
+//!
+//! The first operation opens or creates the database. Give each application its
+//! own private cache directory. Pass an `Arc<SqliteCache>` as the core [`Cache`]
+//! implementation when creating a context.
 
 pub mod catalog;
 mod db;
@@ -521,3 +537,8 @@ mod tests {
         Ok(())
     }
 }
+
+/// Package README examples, compiled as doctests.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadmeDoctests;

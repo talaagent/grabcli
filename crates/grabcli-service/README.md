@@ -1,7 +1,10 @@
 # grabcli-service
 
+[![crates.io](https://img.shields.io/crates/v/grabcli-service.svg)](https://crates.io/crates/grabcli-service)
+[![docs.rs](https://docs.rs/grabcli-service/badge.svg)](https://docs.rs/grabcli-service)
+
 A service-shaped Grab (food delivery) client over
-[grabcli](../../README.md)'s library crates, for a server or a bot that keeps
+[grabcli](https://github.com/talaagent/grabcli/blob/master/README.md)'s library crates, for a server or a bot that keeps
 many people's Grab accounts in its own storage.
 
 The `grab` binary keeps one account in files; this crate keeps none. It
@@ -56,7 +59,7 @@ println!("{}", text::quote(&client.quote().await?));
 # }
 ```
 
-See [`examples/fake_order.rs`](examples/fake_order.rs)
+See [`examples/fake_order.rs`](https://github.com/talaagent/grabcli/blob/master/crates/grabcli-service/examples/fake_order.rs)
 (`cargo run -p grabcli-service --example fake_order`).
 
 ## Safety
@@ -67,8 +70,8 @@ and only against a quote id that matches a fresh re-quote. Never retry
 `place_order` (Grab's submit has no idempotency key); check `track` instead.
 The quote and order path never reads the browse cache.
 
-See the root README's [disclaimer](../../README.md#disclaimer).
+See the root README's [disclaimer](https://github.com/talaagent/grabcli/blob/master/README.md#disclaimer).
 
 ## License
 
-[Apache-2.0](../../LICENSE.txt)
+[Apache-2.0](https://github.com/talaagent/grabcli/blob/master/LICENSE.txt)

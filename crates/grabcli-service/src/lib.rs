@@ -205,3 +205,8 @@ mod tests {
         assert!(Secret::default().is_empty());
     }
 }
+
+/// Package README examples, compiled as doctests.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadmeDoctests;

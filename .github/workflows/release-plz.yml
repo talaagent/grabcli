@@ -48,69 +48,44 @@ jobs:
       - &install-rust
         name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-      # Which publishable crates have a version crates.io doesn't have yet?
-      # Only then ask for a token, so an ordinary push stays green. A crate
-      # not on crates.io at all is held back with a warning (trusted
-      # publishing can't create a crate; its first publish is manual), and
-      # so is every workspace crate that depends on it, since it couldn't
-      # be published either. Held-back crates get `publish = false` in a
-      # copy of release-plz.toml that the release step uses.
+      # Fail visibly when registry/bootstrap setup is incomplete.
       - name: Versions not on crates.io yet
         id: pending
         run: |
           ua="User-Agent: ${GITHUB_REPOSITORY} release workflow"
           api=https://crates.io/api/v1/crates
-          meta=$(cargo metadata --no-deps --format-version 1)
-          held=""
-          while read -r name; do
-            if [ "$(curl -s -o /dev/null -w '%{http_code}' -H "$ua" "$api/$name")" = 404 ]; then
-              echo "::warning::$name is not on crates.io yet: publish it once by hand (cargo publish -p $name), then add its trusted publisher"
-              held="$held $name"
-            fi
-          done < <(jq -r '.packages[] | select(.publish != []) | .name' <<<"$meta")
-          # Hold back dependents of held crates, until nothing changes.
-          while :; do
-            more=$(jq -r --arg held "$held" '
-              ($held | split(" ") | map(select(. != ""))) as $h
-              | .packages[]
-              | select(.publish != [])
-              | select(.name as $n | $h | index($n) | not)
-              | select(any(.dependencies[]; .path != null and .kind != "dev" and (.name as $d | $h | index($d))))
-              | .name' <<<"$meta")
-            [ -z "$more" ] && break
-            for name in $more; do
-              echo "::warning::$name depends on a crate not on crates.io yet; not publishing it this run"
-              held="$held $name"
-            done
-          done
           pending=""
+          missing=false
+          metadata=$(cargo metadata --no-deps --format-version 1)
           while read -r name version; do
-            case " $held " in *" $name "*) continue ;; esac
-            code=$(curl -s -o /dev/null -w '%{http_code}' -H "$ua" "$api/$name/$version")
+            crate_code=$(curl --silent --show-error --retry 3 -o /dev/null -w '%{http_code}' -H "$ua" "$api/$name")
+            case "$crate_code" in
+              200) ;;
+              404)
+                echo "::error::$name has never been published. Run cargo publish -p $name with registry credentials, then configure its crates.io trusted publisher. See CONTRIBUTING.md."
+                echo "- $name: initial publication required; see CONTRIBUTING.md." >> "$GITHUB_STEP_SUMMARY"
+                missing=true
+                continue
+                ;;
+              *) echo "::error::crates.io lookup for $name returned HTTP $crate_code"; exit 1 ;;
+            esac
+            code=$(curl --silent --show-error --retry 3 -o /dev/null -w '%{http_code}' -H "$ua" "$api/$name/$version")
             echo "$name $version: crates.io $code"
-            if [ "$code" = 404 ]; then pending="$pending $name@$version"; fi
-          done < <(jq -r '.packages[] | select(.publish != []) | "\(.name) \(.version)"' <<<"$meta")
-          config="$RUNNER_TEMP/release-plz.toml"
-          cp release-plz.toml "$config"
-          for name in $held; do
-            printf '\n[[package]]\nname = "%s"\npublish = false\n' "$name" >> "$config"
-          done
-          echo "config=$config" >> "$GITHUB_OUTPUT"
+            case "$code" in
+              200) echo "- $name@$version is already published." >> "$GITHUB_STEP_SUMMARY" ;;
+              404) pending="$pending $name@$version" ;;
+              *) echo "::error::crates.io lookup for $name@$version returned HTTP $code"; exit 1 ;;
+            esac
+          done < <(jq -r '.packages[] | select(.publish != []) | "\(.name) \(.version)"' <<< "$metadata")
+          if [ "$missing" = true ]; then exit 1; fi
           echo "pending=${pending# }" >> "$GITHUB_OUTPUT"
           if [ -z "$pending" ]; then
-            echo "::notice::Nothing to publish."
+            echo "::notice::All workspace versions are already on crates.io."
           fi
-      # Fails until the crate's trusted publisher is set up on crates.io;
-      # then warn and skip publishing rather than fail the run.
       - name: crates.io token (trusted publishing)
         if: ${{ steps.pending.outputs.pending != '' }}
         id: auth
-        continue-on-error: true
         uses: rust-lang/crates-io-auth-action@v1
-      - name: No crates.io token
-        if: ${{ steps.pending.outputs.pending != '' && steps.auth.outcome != 'success' }}
-        run: |
-          echo "::warning::No crates.io token from trusted publishing (is a trusted publisher set up for owner talaagent, repo grabcli, workflow release-plz.yml, environment release?). Not publishing: ${{ steps.pending.outputs.pending }}"
       # Publishes in dependency order the versions crates.io doesn't have
       # yet (after a release PR is merged) and tags them.
       - name: Run release-plz
@@ -118,7 +93,6 @@ jobs:
         uses: release-plz/action@v0.5
         with:
           command: release
-          config: ${{ steps.pending.outputs.config }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}

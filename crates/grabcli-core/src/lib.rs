@@ -9,6 +9,19 @@
 //! SQLite cache from `grabcli-sqlite`; a daemon can back both with its own
 //! database. Service crates (e.g. `grabfood`) register their URL allowlist
 //! and make calls through the context.
+//!
+//! # Example: format a price
+//!
+//! ```
+//! use grabcli_core::Money;
+//!
+//! let price = Money(12_345); // integer centavos, not floating-point pesos
+//! assert_eq!(price.peso(), "₱123.45");
+//! assert_eq!(price.minor(), 12_345);
+//! ```
+//!
+//! For HTTP calls, construct a [`Context`] with your own [`SessionStore`] and
+//! [`Cache`]; see `grabfood::context` or `grabcli-service` for service-level setup.
 
 pub mod cache;
 pub mod cdp;
@@ -35,3 +48,8 @@ pub use location::Location;
 pub use money::Money;
 pub use session::Session;
 pub use store::{MemorySessionStore, SessionStore};
+
+/// Package README examples, compiled as doctests.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadmeDoctests;

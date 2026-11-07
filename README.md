@@ -1,5 +1,10 @@
 # grabcli
 
+[![CI](https://github.com/talaagent/grabcli/actions/workflows/ci.yml/badge.svg)](https://github.com/talaagent/grabcli/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/grabcli.svg)](https://crates.io/crates/grabcli)
+[![docs.rs](https://docs.rs/grabcli-service/badge.svg)](https://docs.rs/grabcli-service)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/talaagent/grabcli/blob/master/LICENSE.txt)
+
 A command-line client for Grab, starting with GrabFood (Philippines). It talks
 to the same web API the food.grab.com site uses, so you can search restaurants,
 read menus, build a cart, get a real price quote (with fees, vouchers and your
@@ -62,11 +67,16 @@ nix run github:talaagent/grabcli -- food search pizza
 nix profile install github:talaagent/grabcli
 ```
 
-With cargo:
+From the current source (includes the latest workspace changes):
 
+```sh
+cargo install --git https://github.com/talaagent/grabcli grabcli --locked
 ```
-cargo install --path crates/grabcli   # installs the `grab` binary
-```
+
+The last published version is also available with `cargo install grabcli --locked`.
+It may lag behind this README; `grabcli-sqlite` and `grabcli-service` still need
+their first publication. To build a local checkout, use
+`cargo install --path crates/grabcli --locked`.
 
 ## Auth setup
 
@@ -451,6 +461,22 @@ $ grab mart cart add 2-C6AZTLAEAKCFVT PHITE20260805063620080508
 added 1x Red Bull Energy Drink 4 x 250ml (PHITE20260805063620080508) at ₱339.00 each
 $ grab mart quote            # subtotal, delivery, fees, discounts, total
 ```
+
+## Packages and Rust API
+
+| Crate | crates.io | rustdoc |
+| --- | --- | --- |
+| `grabcli` | [package](https://crates.io/crates/grabcli) | [API docs](https://docs.rs/grabcli) |
+| `grabcli-core` | [package](https://crates.io/crates/grabcli-core) | [API docs](https://docs.rs/grabcli-core) |
+| `grabcli-service` | [package](https://crates.io/crates/grabcli-service) | [API docs](https://docs.rs/grabcli-service) |
+| `grabcli-sqlite` | [package](https://crates.io/crates/grabcli-sqlite) | [API docs](https://docs.rs/grabcli-sqlite) |
+| `grabfood` | [package](https://crates.io/crates/grabfood) | [API docs](https://docs.rs/grabfood) |
+| `grabmart` | [package](https://crates.io/crates/grabmart) | [API docs](https://docs.rs/grabmart) |
+
+The CLI binary is named `grab`; Rust imports use underscores (for example,
+`grabcli_service`). Use `grabcli-service` for a service integration and its
+`fake::Fake` backend for examples that need no credentials or network.
+The lower-level crates expose the protocol and storage building blocks.
 
 ## Embedding in a service
 

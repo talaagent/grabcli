@@ -7,6 +7,7 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 readme = "README.md"
+documentation = "https://docs.rs/grabcli"
 keywords.workspace = true
 categories.workspace = true
 authors.workspace = true
@@ -34,3 +35,6 @@ tempfile.workspace = true
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true

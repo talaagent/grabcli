@@ -17,6 +17,22 @@
 //! turns the response cache off; browse callers opt back in with
 //! [`Context::set_cache_mode`]. The cart → quote → order path never reads
 //! the cache.
+//!
+//! # Example: read a merchant menu
+//!
+//! ```no_run
+//! # async fn read_menu(ctx: &mut grabcli_core::Context) -> grabcli_core::Result<()> {
+//! use grabfood::{menu, MenuSource};
+//!
+//! let menu = menu(ctx, "merchant-id", MenuSource::Live).await?;
+//! println!("{}", menu.name);
+//! # Ok(()) }
+//! ```
+//!
+//! Create `ctx` with [`context`] using your configuration, session store, and cache.
+//! Reading a menu makes a network request but places no order. Use real merchant
+//! IDs returned by browse calls. [`cart_add`] validates cart IDs against the menu;
+//! [`quote()`] fetches current prices before checkout.
 
 pub mod api;
 pub mod browse;
@@ -710,3 +726,8 @@ mod tests {
         assert!(cart.is_empty());
     }
 }
+
+/// Package README examples, compiled as doctests.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadmeDoctests;
