@@ -4,6 +4,7 @@ on:
   push:
     branches: [master]
   pull_request: {}
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,6 +14,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
   nix:
     runs-on: ubuntu-latest
     steps:
@@ -38,8 +45,11 @@ jobs:
       - name: cargo clippy
         run: nix develop --command cargo clippy --workspace --all-targets -- -D warnings
 
-      - name: cargo test
-        run: nix develop --command cargo test --workspace --all-features --locked
+      - name: cargo nextest
+        run: nix develop --command cargo nextest run --profile ci --workspace --all-features --locked
+
+      - name: Rustdoc examples
+        run: nix develop --command cargo test --workspace --doc --locked
 
       - name: cargo fmt
         run: nix develop --command cargo fmt --all --check

@@ -2,6 +2,7 @@
 # dependency vendors only this directory (e.g. crate2nix). Keep the versions
 # in step with the root Cargo.toml's [workspace.dependencies].
 [package]
+rust-version = "1.89"
 name = "grabcli-core"
 description = "Shared Grab session, auth, hydra and HTTP plumbing for grabcli"
 version = "0.2.0"
@@ -16,20 +17,21 @@ categories = ["command-line-utilities"]
 authors = ["Ian Macalinao <me@ianm.com>"]
 
 [dependencies]
-async-trait = "0.1"
-base64 = "0.22"
-futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
-getrandom = "0.3"
-reqwest = { version = "0.13", default-features = false, features = ["rustls", "gzip", "json", "query"] }
-rsa = { version = "0.9", features = ["sha2"], optional = true }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-sha2 = "0.10"
-thiserror = "2"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
-tokio-tungstenite = "0.30"
-toml = { version = "1", default-features = false, features = ["parse", "serde", "std"] }
-urlencoding = "2"
+async-trait = "0.1.92"
+base64 = "0.23.1"
+futures-util = { version = "0.3.34", default-features = false, features = ["sink", "std"] }
+getrandom = "0.4.3"
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls", "gzip", "json", "query"] }
+aws-lc-rs = { version = "1.19.0", optional = true }
+rustls-pki-types = { version = "1.15.1", optional = true }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "time"] }
+tokio-tungstenite = "0.30.0"
+toml = { version = "1.2.1", default-features = false, features = ["parse", "serde", "std"] }
+urlencoding = "2.1.3"
 
 [features]
 default = []
@@ -37,10 +39,11 @@ default = []
 # the hydra JWT locally with an RS256 key, which pulls in rsa and its PKCS
 # stack. Without it hydra is minted over CDP only. The `grab` binary turns
 # it on.
-native-hydra = ["dep:rsa"]
+native-hydra = ["dep:aws-lc-rs", "dep:rustls-pki-types"]
 
 [dev-dependencies]
-tempfile = "3"
+pkcs8 = "0.10.2"
+tempfile = "3.27.0"
 
 [lints.clippy]
 unwrap_used = "deny"

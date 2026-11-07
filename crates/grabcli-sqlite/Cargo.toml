@@ -1,4 +1,5 @@
 [package]
+rust-version = { workspace = true }
 name = "grabcli-sqlite"
 description = "SQLite (FTS5) cache backend for grabcli"
 version.workspace = true

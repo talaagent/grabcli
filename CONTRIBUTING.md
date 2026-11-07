@@ -9,7 +9,8 @@ pre-commit hooks. Before opening a PR, make sure these pass:
 
 ```
 cargo fmt --all --check
-cargo test --workspace --all-features
+cargo nextest run --workspace --all-features --locked
+cargo test --workspace --all-features --doc --locked
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 cargo clippy --workspace --all-targets -- -D warnings
 nix fmt
@@ -66,3 +67,6 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you shall be licensed under the Apache License,
 Version 2.0, as described in section 5 of the license, without any additional
 terms or conditions.
+
+Use `jiff` for date/time handling; do not add a direct `chrono` dependency.
+The Nix dev shell supplies Rust, Cargo, Clippy, rustfmt, and cargo-nextest.

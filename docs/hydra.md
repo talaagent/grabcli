@@ -63,7 +63,7 @@ possible in principle but weren't observed.
 
 Native minting lives behind the `native-hydra` cargo feature of
 `grabcli-core` (forwarded by `grabfood` and `grabmart`), since the RS256
-signer pulls in `rsa` and its PKCS stack. It is off by default for the
+signer pulls in `aws-lc-rs` and the Rustls PEM types. It is off by default for the
 library crates and on in the `grab` binary. Built without it, `auto` always
 uses CDP and `native` fails with a hint to switch.
 

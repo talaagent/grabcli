@@ -20,17 +20,12 @@
 //! *shape* Grab expects. They are protocol facts, not secrets.
 
 #[cfg(feature = "native-hydra")]
-use rsa::RsaPrivateKey;
+use aws_lc_rs::{
+    rand::SystemRandom,
+    signature::{RSA_PKCS1_SHA256, RsaKeyPair},
+};
 #[cfg(feature = "native-hydra")]
-use rsa::pkcs1::DecodeRsaPrivateKey;
-#[cfg(feature = "native-hydra")]
-use rsa::pkcs1v15::SigningKey;
-#[cfg(feature = "native-hydra")]
-use rsa::pkcs8::DecodePrivateKey;
-#[cfg(feature = "native-hydra")]
-use rsa::sha2::Sha256;
-#[cfg(feature = "native-hydra")]
-use rsa::signature::{SignatureEncoding, Signer};
+use rustls_pki_types::{PrivateKeyDer, pem::PemObject};
 #[cfg(feature = "native-hydra")]
 use serde_json::json;
 
@@ -126,15 +121,24 @@ fn uuid_v4() -> String {
 }
 
 #[cfg(feature = "native-hydra")]
-fn load_key(pem: &str) -> Result<RsaPrivateKey> {
-    RsaPrivateKey::from_pkcs1_pem(pem)
-        .or_else(|_| RsaPrivateKey::from_pkcs8_pem(pem))
-        .map_err(|e| {
-            Error::new(
-                ErrorKind::HydraExpired,
-                format!("could not read hydra signing key: {e}"),
-            )
-        })
+fn load_key(pem: &str) -> Result<RsaKeyPair> {
+    let invalid = |detail: String| {
+        Error::new(
+            ErrorKind::HydraExpired,
+            format!("could not read hydra signing key: {detail}"),
+        )
+    };
+    let der = PrivateKeyDer::from_pem_slice(pem.as_bytes()).map_err(|e| invalid(e.to_string()))?;
+    match der {
+        PrivateKeyDer::Pkcs1(key) => RsaKeyPair::from_der(key.secret_pkcs1_der()),
+        PrivateKeyDer::Pkcs8(key) => RsaKeyPair::from_pkcs8(key.secret_pkcs8_der()),
+        _ => {
+            return Err(invalid(
+                "expected an RSA PKCS#1 or PKCS#8 private key".into(),
+            ));
+        }
+    }
+    .map_err(|e| invalid(e.to_string()))
 }
 
 /// Mint a hydra JWT natively by signing claims with the given RS256 key (PEM).
@@ -142,7 +146,6 @@ fn load_key(pem: &str) -> Result<RsaPrivateKey> {
 #[cfg(feature = "native-hydra")]
 pub fn mint_native(key_pem: &str, fields: &DeviceFields, ver: &str) -> Result<(String, i64)> {
     let key = load_key(key_pem)?;
-    let signing = SigningKey::<Sha256>::new(key);
 
     let iat = now();
     let exp = iat + TTL_SECS;
@@ -166,13 +169,20 @@ pub fn mint_native(key_pem: &str, fields: &DeviceFields, ver: &str) -> Result<(S
         b64url(&serde_json::to_vec(&header)?),
         b64url(&serde_json::to_vec(&claims)?)
     );
-    let sig = signing.sign(signing_input.as_bytes());
-    let token = format!("{signing_input}.{}", b64url(&sig.to_vec()));
+    let mut signature = vec![0; key.public_modulus_len()];
+    key.sign(
+        &RSA_PKCS1_SHA256,
+        &SystemRandom::new(),
+        signing_input.as_bytes(),
+        &mut signature,
+    )
+    .map_err(|_| Error::new(ErrorKind::HydraExpired, "could not sign hydra JWT"))?;
+    let token = format!("{signing_input}.{}", b64url(&signature));
     Ok((token, exp))
 }
 
 /// Native minting is compiled out: grabcli-core was built without the
-/// `native-hydra` feature (no rsa). Always fails; mint over CDP instead.
+/// `native-hydra` feature (no native signer). Always fails; mint over CDP instead.
 #[cfg(not(feature = "native-hydra"))]
 pub fn mint_native(_key_pem: &str, _fields: &DeviceFields, _ver: &str) -> Result<(String, i64)> {
     Err(Error::new(
@@ -183,21 +193,35 @@ pub fn mint_native(_key_pem: &str, _fields: &DeviceFields, _ver: &str) -> Result
 }
 
 #[cfg(all(test, feature = "native-hydra"))]
-mod tests {
+pub(crate) mod tests {
     use super::*;
-    use rsa::pkcs1::EncodeRsaPrivateKey;
-    use rsa::pkcs1v15::VerifyingKey;
-    use rsa::signature::Verifier;
+    use aws_lc_rs::{
+        encoding::{AsDer, Pkcs8V1Der},
+        rsa::KeySize,
+        signature::{KeyPair, RSA_PKCS1_2048_8192_SHA256, UnparsedPublicKey},
+    };
 
-    // A throwaway key generated in-test; not Grab's key.
-    fn test_key() -> (String, RsaPrivateKey) {
-        let mut rng = rsa::rand_core::OsRng;
-        let key = RsaPrivateKey::new(&mut rng, 2048).expect("keygen");
-        let pem = key
-            .to_pkcs1_pem(rsa::pkcs1::LineEnding::LF)
-            .expect("pem")
-            .to_string();
+    // A throwaway key generated in-test; never a production key.
+    pub(crate) fn test_key() -> (String, RsaKeyPair) {
+        use base64::Engine as _;
+        let key = RsaKeyPair::generate(KeySize::Rsa2048).expect("keygen");
+        let der: Pkcs8V1Der<'static> = key.as_der().expect("DER");
+        let body = base64::engine::general_purpose::STANDARD.encode(der.as_ref());
+        let pem = format!("-----BEGIN PRIVATE KEY-----\n{body}\n-----END PRIVATE KEY-----\n");
         (pem, key)
+    }
+
+    #[test]
+    fn accepts_pkcs1_and_pkcs8_pem_keys() {
+        use base64::Engine as _;
+        let (pkcs8_pem, key) = test_key();
+        let der: Pkcs8V1Der<'static> = key.as_der().expect("DER");
+        let info = pkcs8::PrivateKeyInfo::try_from(der.as_ref()).expect("PKCS#8");
+        let body = base64::engine::general_purpose::STANDARD.encode(info.private_key);
+        let pkcs1_pem =
+            format!("-----BEGIN RSA PRIVATE KEY-----\n{body}\n-----END RSA PRIVATE KEY-----\n");
+        assert!(load_key(&pkcs8_pem).is_ok());
+        assert!(load_key(&pkcs1_pem).is_ok());
     }
 
     #[test]
@@ -219,13 +243,12 @@ mod tests {
         assert_eq!(exp - claims["iat"].as_i64().unwrap_or(0), 600);
 
         // Signature verifies against the public half.
-        let vk = VerifyingKey::<Sha256>::new(key.to_public_key());
+        let vk = UnparsedPublicKey::new(&RSA_PKCS1_2048_8192_SHA256, key.public_key().as_ref());
         let signing_input = format!("{}.{}", parts[0], parts[1]);
         let sig_bytes =
             base64::Engine::decode(&base64::engine::general_purpose::URL_SAFE_NO_PAD, parts[2])
                 .expect("sig b64");
-        let sig = rsa::pkcs1v15::Signature::try_from(sig_bytes.as_slice()).expect("sig");
-        assert!(vk.verify(signing_input.as_bytes(), &sig).is_ok());
+        assert!(vk.verify(signing_input.as_bytes(), &sig_bytes).is_ok());
         Ok(())
     }
 

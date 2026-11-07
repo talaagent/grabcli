@@ -450,8 +450,6 @@ mod tests {
     #[cfg(feature = "native-hydra")]
     use crate::config::HydraMode;
     use crate::store::MemorySessionStore;
-    #[cfg(feature = "native-hydra")]
-    use rsa::pkcs1::EncodeRsaPrivateKey;
 
     fn store_with(session: Option<Session>) -> Arc<MemorySessionStore> {
         Arc::new(MemorySessionStore::new(session))
@@ -483,13 +481,7 @@ mod tests {
     #[cfg(feature = "native-hydra")]
     #[tokio::test]
     async fn hydra_mint_is_saved_through_the_store() -> Result<()> {
-        let mut rng = rsa::rand_core::OsRng;
-        let key =
-            rsa::RsaPrivateKey::new(&mut rng, 2048).map_err(|e| Error::invalid(e.to_string()))?;
-        let pem = key
-            .to_pkcs1_pem(rsa::pkcs1::LineEnding::LF)
-            .map_err(|e| Error::invalid(e.to_string()))?
-            .to_string();
+        let (pem, _) = crate::hydra::tests::test_key();
         let store = store_with(Some(Session::default()));
         let config = Config {
             hydra_mode: Some(HydraMode::Native),

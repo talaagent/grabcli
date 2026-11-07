@@ -22,7 +22,7 @@ library. Its API is not stable.
   `CacheHandle` (TTLs, modes), for read-only browse data only. The SQLite
   backend is [`grabcli-sqlite`](https://docs.rs/grabcli-sqlite).
 - `hydra`, `jwt`: the hydra device JWT ([docs/hydra.md](https://github.com/talaagent/grabcli/blob/master/docs/hydra.md)).
-  Native RS256 minting needs the non-default `native-hydra` feature (rsa).
+  Native RS256 minting needs the non-default `native-hydra` feature (AWS-LC).
 - `http`: the HTTP client; every request is checked against a URL allowlist.
 - `ctx`: `Context::new(config, store, cache)`: owns config, session and
   client, saves session changes through the store, and re-mints hydra on

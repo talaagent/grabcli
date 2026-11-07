@@ -1,4 +1,5 @@
 [package]
+rust-version = { workspace = true }
 name = "grabmart"
 description = "GrabMart API and CLI subcommands for grabcli"
 version.workspace = true

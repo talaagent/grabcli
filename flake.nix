@@ -47,6 +47,10 @@
             version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).workspace.package.version;
             src = pkgs.lib.cleanSource ./.;
             cargoLock.lockFile = ./Cargo.lock;
+            useNextest = true;
+            postCheck = ''
+              cargo test --workspace --doc --offline --release
+            '';
             cargoBuildFlags = [
               "--package"
               "grabcli"
@@ -92,6 +96,8 @@
           devShells.default = pkgs.mkShell {
             packages = [
               pkgs.cargo
+              pkgs.cargo-nextest
+              pkgs.cargo-deny
               pkgs.rustc
               pkgs.clippy
               pkgs.rustfmt

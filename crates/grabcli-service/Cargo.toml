@@ -1,4 +1,5 @@
 [package]
+rust-version = { workspace = true }
 name = "grabcli-service"
 description = "A service-shaped Grab client over grabcli: plain types, client/backend traits, a phone-login state machine, text rendering and a fake backend"
 version.workspace = true
