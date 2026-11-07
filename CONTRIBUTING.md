@@ -33,15 +33,25 @@ Arguments are parsed with `bpaf` (derive). Money is integer minor units.
 ## Releasing
 
 Releases use **release-plz** to update release PRs and publish merged releases.
-Configure repository Actions secrets `RELEASE_PLZ_TOKEN` (a GitHub App token or
-PAT with repository contents, pull-request, and workflow write permissions) and
-`CARGO_REGISTRY_TOKEN` (a crates.io publishing token). The registry token is
-configured; it supports publishing new crates as well as existing ones.
+Release PRs use the built-in `GITHUB_TOKEN` by default, with job-level
+`contents: write` and `pull-requests: write` permissions. Enable **Allow GitHub
+Actions to create and approve pull requests** in the organization and repository
+Actions settings, then set repository variable `RELEASE_PR=true`. The setup
+check prevents a failing updater from disturbing an existing release PR.
+
+GitHub requires a maintainer to approve CI runs on PRs created or updated with
+`GITHUB_TOKEN`; token-generated pushes do not start ordinary push workflows.
+An optional `RELEASE_PLZ_TOKEN` (GitHub App token or PAT) can override the built-in
+token to run PR CI without that approval and support workflow-file updates.
+No personal GitHub token is required for the default setup.
+
+The `CARGO_REGISTRY_TOKEN` Actions secret is configured for registry publishing,
+including new crates.
 
 Pushes to `master` update a release PR with versions and changelogs. Review and
 merge it after CI passes. `release_always = false` prevents publication from
 ordinary pushes. Release-plz publishes in dependency order and creates tags
-and GitHub releases. The GitHub token allows release PRs to trigger CI.
+and GitHub releases. Approve the release PR CI runs before merging when using `GITHUB_TOKEN`.
 
 For tokenless registry publication, configure each crate's crates.io trusted
 publisher with owner `talaagent`, repository `grabcli`, workflow
