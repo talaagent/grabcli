@@ -46,19 +46,15 @@ GitHub's [workflow dispatch exception](https://docs.github.com/en/actions/how-to
 to the token's event restrictions. An optional `RELEASE_PLZ_TOKEN` (GitHub App
 token or PAT) can override the built-in token; no personal token is required.
 
-The `CARGO_REGISTRY_TOKEN` Actions secret is configured for registry publishing,
-including new crates.
+Registry publication uses crates.io OIDC trusted publishing; the release job
+does not receive a persistent Cargo registry token.
 
 Pushes to `master` update a release PR with versions and changelogs. Review and
 merge it after CI passes. `release_always = false` prevents publication from
 ordinary pushes. Release-plz publishes in dependency order and creates tags
 and GitHub releases.
 
-For tokenless registry publication, configure each crate's crates.io trusted
-publisher with owner `talaagent`, repository `grabcli`, workflow
-`release-plz.yml`, environment `release`, then remove `CARGO_REGISTRY_TOKEN`.
-Release-plz performs the OIDC exchange itself. New crates need a registry token
-for first publication. Check all package versions and docs.rs builds afterward.
+
 
 ## License
 
@@ -70,3 +66,23 @@ terms or conditions.
 
 Use `jiff` for date/time handling; do not add a direct `chrono` dependency.
 The Nix dev shell supplies Rust, Cargo, Clippy, rustfmt, and cargo-nextest.
+
+
+## Trusted publishing
+
+Each crate trusts GitHub owner `talaagent`, repository `grabcli`, workflow
+`release-plz.yml`, environment `release`. The publishing job has `id-token: write`;
+release-plz performs the OIDC exchange itself. Do not set `CARGO_REGISTRY_TOKEN`
+in that job: a persistent token overrides OIDC.
+
+Normal pushes publish only merged release PR versions. For an explicitly
+requested initial rollout or recovery, dispatch the release workflow with
+`bootstrap=true`; it publishes the committed versions through release-plz.
+`release_packages` optionally selects a comma-separated subset, allowing existing
+dependencies to publish before a new workspace crate. Empty means the workspace.
+The generated configuration is temporary and does not weaken normal push gating.
+
+For a brand-new crate, use a short-lived token with `publish-new` for its first
+release, then register the same trusted publisher through the crates.io settings
+or its API using `trustpub` permission. Never commit the token. Future updates
+use OIDC.
