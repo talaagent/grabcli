@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "3"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/talaagent/grabcli"
@@ -14,11 +14,11 @@ categories = ["command-line-utilities"]
 authors = ["Ian Macalinao <me@ianm.com>"]
 
 [workspace.dependencies]
-grabcli-core = { path = "crates/grabcli-core", version = "0.1.0" }
-grabfood = { path = "crates/grabfood", version = "0.1.0" }
-grabmart = { path = "crates/grabmart", version = "0.1.0" }
-grabcli-sqlite = { path = "crates/grabcli-sqlite", version = "0.1.0" }
-grabcli-service = { path = "crates/grabcli-service", version = "0.1.0" }
+grabcli-core = { path = "crates/grabcli-core", version = "0.2.0" }
+grabfood = { path = "crates/grabfood", version = "0.2.0" }
+grabmart = { path = "crates/grabmart", version = "0.2.0" }
+grabcli-sqlite = { path = "crates/grabcli-sqlite", version = "0.2.0" }
+grabcli-service = { path = "crates/grabcli-service", version = "0.2.0" }
 anyhow = "1"
 async-trait = "0.1"
 base64 = "0.22"

@@ -74,8 +74,7 @@ cargo install --git https://github.com/talaagent/grabcli grabcli --locked
 ```
 
 The last published version is also available with `cargo install grabcli --locked`.
-It may lag behind this README; `grabcli-sqlite` and `grabcli-service` still need
-their first publication. To build a local checkout, use
+It may lag behind this README. To build a local checkout, use
 `cargo install --path crates/grabcli --locked`.
 
 ## Auth setup
