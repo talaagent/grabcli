@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-07
+
+### Fixed
+
+- Add a documentation target so docs.rs can build and display CLI usage and links to the Rust libraries.
+
 ## [0.2.0](https://github.com/talaagent/grabcli/compare/grabcli-v0.1.0...grabcli-v0.2.0) - 2026-11-07
 
 ### Other

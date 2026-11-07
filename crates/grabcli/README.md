@@ -8,7 +8,7 @@ GrabFood and GrabMart.
 
 ## Install
 
-```
+```sh
 nix build .#grab
 # or
 cargo install grabcli --locked

@@ -44,7 +44,7 @@
           # check` covers them.
           packages.grab = pkgs.rustPlatform.buildRustPackage {
             pname = "grab";
-            version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).workspace.package.version;
+            version = (builtins.fromTOML (builtins.readFile ./crates/grabcli/Cargo.toml)).package.version;
             src = pkgs.lib.cleanSource ./.;
             cargoLock.lockFile = ./Cargo.lock;
             useNextest = true;
