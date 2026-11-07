@@ -32,25 +32,22 @@ Arguments are parsed with `bpaf` (derive). Money is integer minor units.
 
 ## Releasing
 
-Releases use [release-plz](https://release-plz.dev). A maintainer must first
-publish missing crates in dependency order with `cargo publish -p <crate>`;
-trusted publishing cannot create a crate. `grabcli-sqlite` and
-`grabcli-service` need this bootstrap. Supply registry credentials through
-`cargo login`, never in a commit or issue.
+Releases use **release-plz** to update release PRs and publish merged releases.
+Configure repository Actions secrets `RELEASE_PLZ_TOKEN` (a GitHub App token or
+PAT with repository contents, pull-request, and workflow write permissions) and
+`CARGO_REGISTRY_TOKEN` (a crates.io publishing token). The registry token is
+configured; it supports publishing new crates as well as existing ones.
 
-For every crate, configure a crates.io trusted publisher with owner `talaagent`,
-repository `grabcli`, workflow `release-plz.yml`, environment `release`.
-The organization and repository must allow Actions to create pull requests;
-then set repository variable `RELEASE_PR=true`. Until those prerequisites are
-met, release automation is incomplete. Missing crates or authentication failures
-fail the release job rather than silently skipping publication.
+Pushes to `master` update a release PR with versions and changelogs. Review and
+merge it after CI passes. `release_always = false` prevents publication from
+ordinary pushes. Release-plz publishes in dependency order and creates tags
+and GitHub releases. The GitHub token allows release PRs to trigger CI.
 
-After setup, pushes to `master` update a release PR with versions and changelogs.
-Review and merge it after CI passes to publish. `release_always = false` keeps
-ordinary pushes from publishing. PRs made with `GITHUB_TOKEN` do not trigger CI
-automatically; maintainers must ensure the release branch is checked before
-merging. Check all workspace packages on crates.io and their docs.rs build status
-after each release.
+For tokenless registry publication, configure each crate's crates.io trusted
+publisher with owner `talaagent`, repository `grabcli`, workflow
+`release-plz.yml`, environment `release`, then remove `CARGO_REGISTRY_TOKEN`.
+Release-plz performs the OIDC exchange itself. New crates need a registry token
+for first publication. Check all package versions and docs.rs builds afterward.
 
 ## License
 
