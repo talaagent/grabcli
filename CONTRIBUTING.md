@@ -40,11 +40,11 @@ Actions to create and approve pull requests** in the organization and repository
 Actions settings, then set repository variable `RELEASE_PR=true`. The setup
 check prevents a failing updater from disturbing an existing release PR.
 
-GitHub requires a maintainer to approve CI runs on PRs created or updated with
-`GITHUB_TOKEN`; token-generated pushes do not start ordinary push workflows.
-An optional `RELEASE_PLZ_TOKEN` (GitHub App token or PAT) can override the built-in
-token to run PR CI without that approval and support workflow-file updates.
-No personal GitHub token is required for the default setup.
+The release workflow dispatches CI explicitly for PRs created with `GITHUB_TOKEN`,
+using `actions: write`. It reuses existing runs for the same commit. This uses
+GitHub's [workflow dispatch exception](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)
+to the token's event restrictions. An optional `RELEASE_PLZ_TOKEN` (GitHub App
+token or PAT) can override the built-in token; no personal token is required.
 
 The `CARGO_REGISTRY_TOKEN` Actions secret is configured for registry publishing,
 including new crates.
@@ -52,7 +52,7 @@ including new crates.
 Pushes to `master` update a release PR with versions and changelogs. Review and
 merge it after CI passes. `release_always = false` prevents publication from
 ordinary pushes. Release-plz publishes in dependency order and creates tags
-and GitHub releases. Approve the release PR CI runs before merging when using `GITHUB_TOKEN`.
+and GitHub releases.
 
 For tokenless registry publication, configure each crate's crates.io trusted
 publisher with owner `talaagent`, repository `grabcli`, workflow
