@@ -216,8 +216,8 @@ pub(crate) mod tests {
         use base64::Engine as _;
         let (pkcs8_pem, key) = test_key();
         let der: Pkcs8V1Der<'static> = key.as_der().expect("DER");
-        let info = pkcs8::PrivateKeyInfo::try_from(der.as_ref()).expect("PKCS#8");
-        let body = base64::engine::general_purpose::STANDARD.encode(info.private_key);
+        let info = pkcs8::PrivateKeyInfoRef::try_from(der.as_ref()).expect("PKCS#8");
+        let body = base64::engine::general_purpose::STANDARD.encode(info.private_key.as_bytes());
         let pkcs1_pem =
             format!("-----BEGIN RSA PRIVATE KEY-----\n{body}\n-----END RSA PRIVATE KEY-----\n");
         assert!(load_key(&pkcs8_pem).is_ok());

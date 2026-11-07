@@ -42,7 +42,7 @@ default = []
 native-hydra = ["dep:aws-lc-rs", "dep:rustls-pki-types"]
 
 [dev-dependencies]
-pkcs8 = "0.10.2"
+pkcs8 = "0.11.0"
 tempfile = "3.27.0"
 
 [lints.clippy]
