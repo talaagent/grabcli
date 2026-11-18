@@ -18,15 +18,30 @@ use grabcli_sqlite::SqliteCache;
 
 use crate::paths;
 
-/// `config.toml` (defaults if it doesn't exist).
+/// The env var naming the CDP endpoint; it overrides `cdp` in config.toml
+/// (a `--cdp` flag still wins). For a host that hands `grab` a browser per
+/// run, such as a credential broker running `grab auth login`.
+pub const CDP_ENV: &str = "GRAB_CDP_URL";
+
+/// `config.toml` (defaults if it doesn't exist), with `GRAB_CDP_URL` applied.
 pub fn load_config() -> Result<Config> {
     let path = paths::config_path()?;
-    match std::fs::read_to_string(&path) {
+    let config = match std::fs::read_to_string(&path) {
         Ok(s) => Config::parse(&s)
-            .map_err(|e| Error::new(e.kind, format!("{}: {}", path.display(), e.message))),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Config::default()),
-        Err(e) => Err(e.into()),
+            .map_err(|e| Error::new(e.kind, format!("{}: {}", path.display(), e.message)))?,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Config::default(),
+        Err(e) => return Err(e.into()),
+    };
+    Ok(with_cdp(config, std::env::var(CDP_ENV).ok()))
+}
+
+/// `config` with `cdp` set to `env` (`GRAB_CDP_URL`'s value) when that is
+/// non-empty.
+fn with_cdp(mut config: Config, env: Option<String>) -> Config {
+    if let Some(url) = env.map(|v| v.trim().to_owned()).filter(|v| !v.is_empty()) {
+        config.cdp = Some(url);
     }
+    config
 }
 
 /// A session kept in one JSON file, written 0600.
@@ -224,6 +239,20 @@ mod tests {
             assert_eq!(mode & 0o777, 0o600);
         }
         Ok(())
+    }
+
+    #[test]
+    fn cdp_env_overrides_the_config() {
+        let file = Config {
+            cdp: Some("http://127.0.0.1:9222".into()),
+            ..Config::default()
+        };
+        let set = with_cdp(file.clone(), Some("http://browser.test:9333".into()));
+        assert_eq!(set.cdp.as_deref(), Some("http://browser.test:9333"));
+        let empty = with_cdp(file.clone(), Some("  ".into()));
+        assert_eq!(empty.cdp.as_deref(), Some("http://127.0.0.1:9222"));
+        let unset = with_cdp(Config::default(), None);
+        assert_eq!(unset.cdp, None);
     }
 
     #[tokio::test]
