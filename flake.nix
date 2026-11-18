@@ -7,6 +7,10 @@
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -35,14 +39,28 @@
         {
           config,
           self',
+          system,
           pkgs,
           ...
         }:
+        let
+          # Toolchain pinned by rust-toolchain.toml, from rust-overlay.
+          rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+          rustPlatform = pkgs.makeRustPlatform {
+            cargo = rustToolchain;
+            rustc = rustToolchain;
+          };
+        in
         {
+          _module.args.pkgs = import inputs.nixpkgs {
+            inherit system;
+            overlays = [ (import inputs.rust-overlay) ];
+          };
+
           # The whole workspace builds from Cargo.lock; only the `grab` binary
           # (crate grabcli) is installed. Tests run here too, so `nix flake
           # check` covers them.
-          packages.grab = pkgs.rustPlatform.buildRustPackage {
+          packages.grab = rustPlatform.buildRustPackage {
             pname = "grab";
             version = (builtins.fromTOML (builtins.readFile ./crates/grabcli/Cargo.toml)).package.version;
             src = pkgs.lib.cleanSource ./.;
@@ -72,6 +90,7 @@
             projectRootFile = "flake.nix";
             programs.nixfmt.enable = true;
             programs.rustfmt.enable = true;
+            programs.rustfmt.package = rustToolchain;
           };
 
           # Format on commit; clippy is a full typecheck, so only before push.
@@ -84,7 +103,8 @@
               enable = true;
               stages = [ "pre-push" ];
               packageOverrides = {
-                inherit (pkgs) cargo clippy;
+                cargo = rustToolchain;
+                clippy = rustToolchain;
               };
               settings = {
                 extraArgs = "--workspace --all-targets";
@@ -95,13 +115,9 @@
 
           devShells.default = pkgs.mkShell {
             packages = [
-              pkgs.cargo
+              rustToolchain
               pkgs.cargo-nextest
               pkgs.cargo-deny
-              pkgs.rustc
-              pkgs.clippy
-              pkgs.rustfmt
-              pkgs.rust-analyzer
               config.treefmt.build.wrapper
             ];
             shellHook = config.pre-commit.installationScript;
