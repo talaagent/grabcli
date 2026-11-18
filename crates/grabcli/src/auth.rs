@@ -41,7 +41,8 @@ pub enum AuthCmd {
     Login {
         #[bpaf(long("json"), switch)]
         json: bool,
-        /// Chrome DevTools Protocol endpoint of the browser to drive.
+        /// Chrome DevTools Protocol endpoint of the browser to drive (else
+        /// $GRAB_CDP_URL, else `cdp` in config.toml).
         #[bpaf(long("cdp"), argument("URL"))]
         cdp: Option<String>,
         /// Phone number in international form (+63…). Never stored in full.
@@ -79,7 +80,8 @@ pub enum AuthCmd {
     Import {
         #[bpaf(long("json"), switch)]
         json: bool,
-        /// Chrome DevTools Protocol endpoint of a logged-in browser.
+        /// Chrome DevTools Protocol endpoint of a logged-in browser (else
+        /// $GRAB_CDP_URL, else `cdp` in config.toml).
         #[bpaf(long("cdp"), argument("URL"))]
         cdp: Option<String>,
         /// Import an existing session.json instead of using a browser.

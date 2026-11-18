@@ -145,7 +145,7 @@ allow_ordering = false
 payment_type_id = "123456789"
 
 # A logged-in browser's CDP endpoint, used to import cookies and (optionally)
-# mint hydra.
+# mint hydra. GRAB_CDP_URL overrides it; a --cdp flag overrides both.
 cdp = "http://127.0.0.1:9222"
 
 # auto | native | cdp. "auto" mints natively if a signing key is present, else
