@@ -1,0 +1,33 @@
+#:schema https://raw.githubusercontent.com/talaagent/cargo-faster/main/docs/cargo-faster.schema.json
+# Reference: https://github.com/talaagent/cargo-faster/blob/main/docs/cargo-faster.md#the-configuration-file
+
+# The most-edited crates over the last six months (git log): core 56, grabfood 36, the bin 31.
+hot = ["grabcli-core", "grabfood", "grabcli"]
+
+[[accept]]
+id = "high-fanout"
+crate = "grabcli-core"
+reason = "the shared base layer by design: config, session, the SessionStore/Cache traits, http allowlist and money that every service crate and the bin build on"
+
+[[layer]]
+crates = ["*"]
+must_not_depend_on = ["tala-*"]
+reason = "a standalone public tool and library set; tala-agent depends on it, never the reverse"
+
+[[layer]]
+crates = ["grabcli-core", "grabfood", "grabmart", "grabcli-service"]
+must_not_depend_on = ["grabcli", "grabcli-sqlite", "rusqlite"]
+reason = "library crates own no storage (CLAUDE.md): the SQLite cache and file stores are wired up in the bin, embedders pass Arc<dyn SessionStore>/Arc<dyn Cache>"
+
+# Measured 2026-11-18 with `cargo faster check --timings` (two runs, larger kept) on a
+# shared 32-core dev box under heavy load (load avg ~85), cold, `nix develop`:
+# cold check 112.0s / 4.7s; edit grabcli-core 12.4s / 2.7s, grabfood 2.3s / 4.9s,
+# grabcli 0.9s / 0.8s; critical path 3 workspace crates (grabcli-core → grabfood →
+# grabcli-service, then grabfood → grabmart → grabcli); 3 duplicate versions.
+# Budgets are the larger × 1.25, rounded up.
+[budgets]
+cold_check_secs = 140
+edit_rebuild_secs = { grabcli-core = 16, grabfood = 7, grabcli = 2 }
+critical_path_max_crates = 4
+no_new_critical_crates = ["grabcli-core", "grabfood", "grabcli-service", "grabmart", "grabcli"]
+max_duplicate_versions = 4
