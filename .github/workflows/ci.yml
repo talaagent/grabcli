@@ -59,6 +59,10 @@ jobs:
           RUSTDOCFLAGS: -Dwarnings
         run: nix develop --command cargo doc --workspace --all-features --no-deps --locked
 
+      # - name: cargo faster check
+      #   run: nix develop --command cargo faster check --format github
+      # cargo faster check   # enable once cargo-faster >= 0.1.0 is on crates.io (needs talaagent/cargo-faster#88)
+
       # Builds each crate alone from its packaged tarball, default features.
       - name: cargo publish --dry-run
         run: nix develop --command cargo publish --workspace --dry-run --locked
