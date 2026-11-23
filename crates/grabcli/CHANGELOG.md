@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2](https://github.com/talaagent/grabcli/compare/grabcli-v0.2.1...grabcli-v0.2.2) - 2026-11-23
+
+### Other
+
+- GRAB_CDP_URL overrides config.toml's cdp ([#12](https://github.com/talaagent/grabcli/pull/12))
+
 ## [0.2.1] - 2026-11-07
 
 ### Fixed
