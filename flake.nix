@@ -65,6 +65,13 @@
             version = (builtins.fromTOML (builtins.readFile ./crates/grabcli/Cargo.toml)).package.version;
             src = pkgs.lib.cleanSource ./.;
             cargoLock.lockFile = ./Cargo.lock;
+            # aws-lc-sys: nixpkgs' cargo hook sets AWS_LC_SYS_USE_SYSTEM=1 (NixOS/nixpkgs#570938).
+            nativeBuildInputs = [ pkgs.pkg-config ];
+            # libsqlite3-sys: the hook also sets LIBSQLITE3_SYS_USE_PKG_CONFIG=1.
+            buildInputs = [
+              pkgs.aws-lc
+              pkgs.sqlite
+            ];
             useNextest = true;
             postCheck = ''
               cargo test --workspace --doc --offline --release
